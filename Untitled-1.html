@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎯 Guess the Number - Single Player</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Inter',sans-serif;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
+  animation: gradientBG 15s ease infinite;
+  background: linear-gradient(-45deg,#0f2027,#203a43,#2c5364,#0f2027);
+  background-size: 400% 400%;
+}
+@keyframes gradientBG{
+  0%{background-position:0% 50%;}
+  50%{background-position:100% 50%;}
+  100%{background-position:0% 50%;}
+}
+.container{
+  background:rgba(255,255,255,0.05);
+  padding:30px;
+  border-radius:20px;
+  box-shadow:0 10px 40px rgba(0,0,0,0.7);
+  text-align:center;
+  width:95%;
+  max-width:520px;
+  position:relative;
+}
+h1{font-size:32px;margin-bottom:10px;}
+p{color:#cfd8dc;margin-bottom:20px;}
+.player{
+  margin:5px; padding:15px;
+  background:rgba(255,255,255,0.05);
+  border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,0.4);
+  transition: transform 0.2s;
+}
+.player.winner{transform: scale(1.05); box-shadow:0 0 30px #1abc9c;}
+input[type=number]{padding:10px;font-size:16px;width:120px;border-radius:10px;border:none;outline:none;text-align:center;}
+button{padding:8px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:600;background:#1abc9c;color:white;margin-top:8px;transition:0.3s;}
+button:hover{background:#16a085;}
+.message{margin-top:16px;font-size:20px;font-weight:700;min-height:28px;transition:0.3s;}
+.progress-container{width:100%;background:rgba(255,255,255,0.1);border-radius:12px;margin:12px 0;}
+.progress-bar{height:14px;border-radius:12px;background:#1abc9c;width:100%;transition:width 0.3s ease;}
+canvas{position:absolute;top:0;left:0;pointer-events:none;z-index:10;}
+#leaderboard{margin-top:20px;text-align:left;}
+#leaderboard h3{font-size:16px;margin-bottom:6px;}
+#leaderboard ul{list-style:none;padding-left:10px;color:#cfd8dc;}
+#leaderboard li{margin:4px 0;transition: all 0.5s ease;}
+#leaderboard li.top1{color:gold; font-weight:bold; animation: bounce 1s;}
+#leaderboard li.top2{color:silver; font-weight:bold; animation: bounce 1s;}
+#leaderboard li.top3{color:#cd7f32; font-weight:bold; animation: bounce 1s;}
+@keyframes bounce{
+  0%{transform: translateY(-10px);}
+  50%{transform: translateY(5px);}
+  100%{transform: translateY(0);}
+}
+.timer{margin-top:10px;font-weight:600;font-size:18px;}
+.mic-dot{display:inline-block;width:12px;height:12px;border-radius:50%;background:#34495e;margin-left:6px;box-shadow:0 0 4px transparent;}
+.mic-dot.listening{background:#e74c3c;box-shadow:0 0 8px #e74c3c;}
+.voice-btn{margin:6px 4px;padding:4px 8px;font-size:14px;}
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<div class="container" id="container">
+<h1>🎯 Guess the Number</h1>
+<p>Try to guess the secret number (1–100) in as few attempts as possible!</p>
+<div class="timer" id="timer">⏱ Time left: 60s</div>
+
+<div class="player" id="player1">
+<input type="number" id="p1Input" placeholder="Your Guess">
+<button onclick="submitGuess()">Submit</button>
+<button class="voice-btn" onclick="startVoice()">🎙️ Voice</button>
+<span class="mic-dot" id="p1Mic"></span>
+<div class="progress-container"><div class="progress-bar" id="p1Progress"></div></div>
+<div id="p1History"></div>
+</div>
+
+<div>
+  <button id="startBtn">▶️ Start Game</button>
+  <button onclick="resetGame()">🔄 New Game</button>
+</div>
+<div class="message" id="message">Click "Start Game" to begin!</div>
+
+<div id="leaderboard">
+<h3>🏆 Leaderboard (Top Players)</h3>
+<ul id="leaderboardList"></ul>
+</div>
+
+<audio id="correctSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
+<audio id="wrongSound" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
+</div>
+
+<script>
+// ===== Game State =====
+let secret = Math.floor(Math.random()*100)+1;
+let maxTime = 60; 
+let timerInterval;
+let player = {
+  attemptsLeft:10,
+  currentAttempts:0,
+  progressEl:document.getElementById('p1Progress'),
+  historyEl:document.getElementById('p1History'),
+  micEl:document.getElementById('p1Mic'),
+  elem:document.getElementById('player1'),
+  recog:null
+};
+const messageEl=document.getElementById('message');
+const timerEl=document.getElementById('timer');
+const correctSound=document.getElementById('correctSound');
+const wrongSound=document.getElementById('wrongSound');
+const containerEl=document.getElementById('container');
+
+// ===== Confetti =====
+function confettiEffect(){
+  const canvas=document.getElementById('confetti');
+  const ctx=canvas.getContext('2d');
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+  const confetti=[];
+  for(let i=0;i<200;i++){
+    confetti.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,radius:Math.random()*6+2,color:`hsl(${Math.random()*360},100%,50%)`,dx:(Math.random()-0.5)*4,dy:(Math.random()-2)*4});
+  }
+  let count=0;
+  function animate(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    confetti.forEach(c=>{
+      c.x+=c.dx; c.y+=c.dy+1;
+      if(c.y>canvas.height){c.y=0;c.x=Math.random()*canvas.width;}
+      ctx.beginPath();
+      ctx.arc(c.x,c.y,c.radius,0,Math.PI*2);
+      ctx.fillStyle=c.color;
+      ctx.fill();
+    });
+    if(count<250){requestAnimationFrame(animate);count++;}
+  }
+  animate();
+}
+
+// ===== Leaderboard =====
+function updateLeaderboard(attempts){
+  let scores = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+  let newTop = 0; // 1 = #1, 2 = #2, 3 = #3
+  if(attempts){
+    const date = new Date();
+    scores.push({attempts: attempts, date: date.toLocaleString()});
+  }
+  scores.sort((a,b)=>a.attempts-b.attempts);
+  localStorage.setItem('leaderboard', JSON.stringify(scores));
+
+  const leaderboardEl = document.getElementById('leaderboardList');
+  leaderboardEl.innerHTML='';
+
+  scores.slice(0,5).forEach((s,i)=>{
+    const li=document.createElement('li');
+    li.textContent = `${i+1}. ${s.attempts} attempts (${s.date})`;
+    li.style.opacity = 0;
+    setTimeout(()=>{li.style.opacity=1; li.style.transition='opacity 0.5s ease';},50);
+
+    if(i===0) {li.classList.add('top1'); if(attempts) newTop=1;}
+    else if(i===1) {li.classList.add('top2'); if(attempts && newTop===0) newTop=2;}
+    else if(i===2) {li.classList.add('top3'); if(attempts && newTop===0) newTop=3;}
+
+    leaderboardEl.appendChild(li);
+  });
+
+  // Congratulatory messages
+  if(newTop===1) { 
+    messageEl.textContent=`🎉 Congratulations! You are #1!`;
+    confettiEffect();
+  } else if(newTop===2) {
+    messageEl.textContent=`👏 Great job! You reached #2!`;
+  } else if(newTop===3) {
+    messageEl.textContent=`👍 Awesome! You reached #3!`;
+  }
+}
+updateLeaderboard();
+
+// ===== Timer =====
+function startTimer(){
+  clearInterval(timerInterval);
+  let time=maxTime;
+  timerEl.textContent=`⏱ Time left: ${time}s`;
+  timerInterval=setInterval(()=>{
+    time--;
+    timerEl.textContent=`⏱ Time left: ${time}s`;
+    if(time<=0){
+      clearInterval(timerInterval);
+      messageEl.textContent="⏳ Time's up! Game over!";
+      disableInput();
+    }
+  },1000);
+}
+
+// ===== Game Logic =====
+function submitGuess(){
+  const input=document.getElementById('p1Input');
+  const val=Number(input.value);
+  if(isNaN(val)||val<1||val>100){alert('Enter 1–100'); return;}
+  player.attemptsLeft--; player.currentAttempts++;
+  player.progressEl.style.width=(player.attemptsLeft/10*100)+'%';
+  const hist=document.createElement('div');
+  if(val===secret){
+    hist.textContent=`✅ ${val} Correct`;
+    player.historyEl.prepend(hist);
+    messageEl.textContent=`🎉 You win in ${player.currentAttempts} attempts!`;
+    confettiEffect(); correctSound.play();
+    player.elem.classList.add('winner');
+    shakeScreen();
+    updateLeaderboard(player.currentAttempts);
+    disableInput();
+  } else{
+    const hint=val>secret?'📉 Too high':'📈 Too low';
+    hist.textContent=`${val} — ${hint}`;
+    player.historyEl.prepend(hist);
+    messageEl.textContent=`${hint}`;
+    wrongSound.play();
+  }
+  input.value='';
+}
+
+// ===== Screen Shake =====
+function shakeScreen(){
+  let i=0; const interval=setInterval(()=>{
+    containerEl.style.transform=`translate(${(Math.random()-0.5)*10}px, ${(Math.random()-0.5)*10}px)`;
+    i++;
+    if(i>10){clearInterval(interval); containerEl.style.transform='';}
+  },20);
+}
+
+// ===== Disable Input =====
+function disableInput(){
+  document.getElementById('p1Input').disabled=true;
+  document.querySelectorAll('button').forEach(b=>{if(b.id!=='startBtn') b.disabled=true;});
+  clearInterval(timerInterval);
+}
+
+// ===== Reset / New Game =====
+function resetGame(){
+  clearInterval(timerInterval);
+  secret = Math.floor(Math.random()*100)+1;
+  player.attemptsLeft=10; 
+  player.currentAttempts=0; 
+  player.progressEl.style.width='100%'; 
+  player.historyEl.innerHTML='';
+  player.elem.classList.remove('winner');
+  if(player.recog){player.recog.stop(); player.recog=null;}
+  player.micEl.classList.remove('listening');
+
+  // Disable inputs until start
+  document.getElementById('p1Input').disabled = true;
+  document.querySelectorAll('button').forEach(b=>{
+    if(b.id !== 'startBtn') b.disabled = true;
+  });
+  document.getElementById('startBtn').disabled = false;
+
+  messageEl.textContent='Click "Start Game" to begin!';
+  const canvas = document.getElementById('confetti');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+// ===== Start Game Button =====
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  document.getElementById('p1Input').disabled = false;
+  document.querySelectorAll('button').forEach(b=>{
+    if(b.id !== 'startBtn') b.disabled = false;
+  });
+  document.getElementById('startBtn').disabled = true;
+  messageEl.textContent = 'Game started! Guess the number!';
+  startTimer();
+});
+
+// ===== Voice Input =====
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+function startVoice(){
+  if(!SpeechRecognition){alert('Voice not supported'); return;}
+  if(player.recog){player.recog.stop(); player.recog=null; return;}
+  player.recog=new SpeechRecognition();
+  player.recog.lang='en-US';
+  player.recog.continuous=true;
+  player.recog.onstart=()=>{player.micEl.classList.add('listening'); messageEl.textContent=`Listening...`;}
+  player.recog.onend=()=>{player.micEl.classList.remove('listening'); player.recog=null;}
+  player.recog.onresult=ev=>{
+    const spoken=ev.results[ev.results.length-1][0].transcript.trim();
+    const num=extractNumber(spoken);
+    if(num) submitGuess();
+    else messageEl.textContent=`Could not detect number`;
+  };
+  player.recog.start();
+}
+
+// ===== Parse Spoken Numbers =====
+function extractNumber(s){
+  const digits=s.match(/\d+/); if(digits) return Number(digits[0]);
+  return null;
+}
+
+// ===== Initialize =====
+resetGame();
+updateLeaderboard();
+</script>
+</body>
+</html>
