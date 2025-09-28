@@ -1,0 +1,59 @@
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Inter',sans-serif;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
+  animation: gradientBG 15s ease infinite;
+  background: linear-gradient(-45deg,#0f2027,#203a43,#2c5364,#0f2027);
+  background-size: 400% 400%;
+}
+@keyframes gradientBG{
+  0%{background-position:0% 50%;}
+  50%{background-position:100% 50%;}
+  100%{background-position:0% 50%;}
+}
+.container{
+  background:rgba(255,255,255,0.05);
+  padding:30px;
+  border-radius:20px;
+  box-shadow:0 10px 40px rgba(0,0,0,0.7);
+  text-align:center;
+  width:95%;
+  max-width:520px;
+  position:relative;
+}
+h1{font-size:32px;margin-bottom:10px;}
+p{color:#cfd8dc;margin-bottom:20px;}
+.player{
+  margin:5px; padding:15px;
+  background:rgba(255,255,255,0.05);
+  border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,0.4);
+  transition: transform 0.2s;
+}
+.player.winner{transform: scale(1.05); box-shadow:0 0 30px #1abc9c;}
+input[type=number]{padding:10px;font-size:16px;width:120px;border-radius:10px;border:none;outline:none;text-align:center;}
+button{padding:8px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:600;background:#1abc9c;color:white;margin-top:8px;transition:0.3s;}
+button:hover{background:#16a085;}
+.message{margin-top:16px;font-size:20px;font-weight:700;min-height:28px;transition:0.3s;}
+.progress-container{width:100%;background:rgba(255,255,255,0.1);border-radius:12px;margin:12px 0;}
+.progress-bar{height:14px;border-radius:12px;background:#1abc9c;width:100%;transition:width 0.3s ease;}
+canvas{position:absolute;top:0;left:0;pointer-events:none;z-index:10;}
+#leaderboard{margin-top:20px;text-align:left;}
+#leaderboard h3{font-size:16px;margin-bottom:6px;}
+#leaderboard ul{list-style:none;padding-left:10px;color:#cfd8dc;}
+#leaderboard li{margin:4px 0;transition: all 0.5s ease;}
+#leaderboard li.top1{color:gold; font-weight:bold; animation: bounce 1s;}
+#leaderboard li.top2{color:silver; font-weight:bold; animation: bounce 1s;}
+#leaderboard li.top3{color:#cd7f32; font-weight:bold; animation: bounce 1s;}
+@keyframes bounce{
+  0%{transform: translateY(-10px);}
+  50%{transform: translateY(5px);}
+  100%{transform: translateY(0);}
+}
+.timer{margin-top:10px;font-weight:600;font-size:18px;}
+.mic-dot{display:inline-block;width:12px;height:12px;border-radius:50%;background:#34495e;margin-left:6px;box-shadow:0 0 4px transparent;}
+.mic-dot.listening{background:#e74c3c;box-shadow:0 0 8px #e74c3c;}
+.voice-btn{margin:6px 4px;padding:4px 8px;font-size:14px;}

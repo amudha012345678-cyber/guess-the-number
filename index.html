@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎯 Guess the Number - Single Player</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="confetti"></canvas>
+  <div class="container" id="container">
+    <h1>🎯 Guess the Number</h1>
+    <p>Try to guess the secret number (1–100) in as few attempts as possible!</p>
+    <div class="timer" id="timer">⏱ Time left: 60s</div>
+
+    <div class="player" id="player1">
+      <input type="number" id="p1Input" placeholder="Your Guess">
+      <button onclick="submitGuess()">Submit</button>
+      <button class="voice-btn" onclick="startVoice()">🎙️ Voice</button>
+      <span class="mic-dot" id="p1Mic"></span>
+      <div class="progress-container">
+        <div class="progress-bar" id="p1Progress"></div>
+      </div>
+      <div id="p1History"></div>
+    </div>
+
+    <div>
+      <button id="startBtn">▶️ Start Game</button>
+      <button onclick="resetGame()">🔄 New Game</button>
+    </div>
+    <div class="message" id="message">Click "Start Game" to begin!</div>
+
+    <div id="leaderboard">
+      <h3>🏆 Leaderboard (Top Players)</h3>
+      <ul id="leaderboardList"></ul>
+    </div>
+
+    <audio id="correctSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
+    <audio id="wrongSound" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
